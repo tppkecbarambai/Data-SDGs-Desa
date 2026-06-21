@@ -1,0 +1,2636 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard SDGs Desa Kecamatan Barambai 2026</title>
+<meta name="description" content="Dashboard Capaian SDGs Desa se-Kecamatan Barambai Tahun 2026">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    .gradient-sdgs { 
+        background: linear-gradient(135deg, #059669 0%, #0ea5e9 50%, #0284c7 100%);
+    }
+    .glass-effect {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-scale-in { animation: scaleIn 0.3s ease-out forwards; }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    .chart-container { position: relative; height: 400px; width: 100%; }
+    .radar-chart-container { position: relative; height: 450px; width: 100%; }
+    @media (max-width: 640px) { 
+        .chart-container { height: 320px; } 
+        .radar-chart-container { height: 350px; }
+    }
+    .tab-active { border-color: #0ea5e9; color: #0ea5e9; }
+    .dark .tab-active { border-color: #38bdf8; color: #38bdf8; }
+    .sdg-icon { display: inline-block; font-size: 1.1rem; line-height: 1; }
+    .progress-circle {
+        width: 120px;
+        height: 120px;
+        position: relative;
+    }
+    .progress-circle svg {
+        transform: rotate(-90deg);
+    }
+    .card-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .dark .card-hover:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    }
+    .modal-overlay {
+        animation: overlayFade 0.3s ease-out;
+    }
+    @keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
+    .modal-content {
+        animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes modalSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .sdg-progress-item {
+        transition: all 0.2s ease;
+    }
+    .sdg-progress-item:hover {
+        background-color: rgb(241 245 249);
+        transform: translateX(4px);
+    }
+    .dark .sdg-progress-item:hover {
+        background-color: rgb(51 65 85);
+    }
+    .badge-rank {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    }
+    .badge-rank.top3 {
+        background: linear-gradient(135deg, #fbbf24 0%, #dc2626 100%);
+    }
+    .chart-tab-active {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        color: white;
+    }
+    .heatmap-cell {
+        min-width: 60px;
+        height: 44px;
+        text-align: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .heatmap-cell:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 2px #0ea5e9;
+        z-index: 10;
+    }
+    .heatmap-container {
+        overflow: auto;
+        max-height: 600px;
+    }
+    .target-table-container {
+        overflow: auto;
+        max-height: 700px;
+    }
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        background: white;
+        z-index: 5;
+    }
+    .dark .sticky-col {
+        background: #1e293b;
+    }
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 6;
+    }
+    .dark .sticky-header {
+        background: #1e293b;
+    }
+    .target-cell {
+        min-width: 90px;
+        padding: 4px;
+        text-align: center;
+        font-size: 0.75rem;
+    }
+    .progress-bar-track {
+        width: 100%;
+        height: 16px;
+        background-color: #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+    .dark .progress-bar-track {
+        background-color: #334155;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: white;
+    }
+    .target-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+    @media (max-width: 640px) {
+        .heatmap-cell {
+            min-width: 50px;
+            height: 40px;
+            font-size: 0.65rem;
+        }
+        .target-cell {
+            min-width: 70px;
+            font-size: 0.65rem;
+        }
+    }
+    .editable-cell {
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 2px 4px;
+    }
+    .editable-cell:hover {
+        border-color: #0ea5e9;
+        background-color: #eff6ff;
+    }
+    .dark .editable-cell:hover {
+        background-color: #1e3a8a;
+    }
+</style>
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                colors: {
+                    sdgs: {
+                        green: '#059669',
+                        blue: '#0ea5e9',
+                        darkblue: '#0284c7'
+                    }
+                }
+            }
+        }
+    }
+</script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300">
+
+<!-- Header -->
+<header class="gradient-sdgs text-white shadow-lg sticky top-0 z-50 glass-effect">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/20 p-2.5 rounded-xl">
+                    <i data-lucide="bar-chart-3" class="w-7 h-7"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold leading-tight">Dashboard SDGs Desa</h1>
+                    <p class="text-sm text-white/80">Kecamatan Barambai Tahun 2026</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
+                <button id="exportPdfBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Export PDF</span>
+                    <span class="sm:hidden">PDF</span>
+                </button>
+                <a href="https://tppkecamatanbarambai.blogspot.com/" target="_blank" rel="noopener noreferrer" 
+                   class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2">
+                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">TPP Barambai</span>
+                    <span class="sm:hidden">TPP</span>
+                </a>
+                <button id="darkModeToggle" class="bg-white/20 hover:bg-white/30 p-2.5 rounded-lg transition-all duration-200" aria-label="Toggle Dark Mode">
+                    <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    
+    <!-- Loading State -->
+    <div id="loadingState" class="flex flex-col items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-sdgs-blue border-t-transparent mb-4"></div>
+        <p class="text-slate-600 dark:text-slate-400">Memuat data SDGs dari Google Sheets...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="hidden">
+        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+            <i data-lucide="alert-triangle" class="w-12 h-12 text-red-500 mx-auto mb-3"></i>
+            <h3 class="text-lg font-semibold text-red-700 dark:text-red-400 mb-2">Gagal Memuat Data</h3>
+            <p class="text-red-600 dark:text-red-300 mb-4" id="errorMessage">Terjadi kesalahan saat mengambil data dari Google Sheets.</p>
+            <button onclick="loadData()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                Coba Lagi
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden space-y-8">
+        
+        <!-- Section 1: Rekap Capaian Kecamatan -->
+        <section class="animate-fade-in">
+            <h2 class="text-2xl font-bold mb-5 flex items-center gap-2">
+                <i data-lucide="layout-dashboard" class="w-6 h-6 text-sdgs-blue"></i>
+                Rekap Capaian Kecamatan
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Rata-rata Capaian</p>
+                        <div class="bg-sdgs-green/10 p-2 rounded-lg">
+                            <i data-lucide="trending-up" class="w-5 h-5 text-sdgs-green"></i>
+                        </div>
+                    <p class="text-3xl font-bold text-sdgs-green" id="avgCapaian">0%</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Seluruh Desa</p>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Desa</p>
+                        <div class="bg-sdgs-blue/10 p-2 rounded-lg">
+                            <i data-lucide="home" class="w-5 h-5 text-sdgs-blue"></i>
+                        </div>
+                    </div>
+                    <p class="text-3xl font-bold text-sdgs-blue" id="totalDesa">0</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Desa Terdata</p>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Capaian Tertinggi</p>
+                        <div class="bg-emerald-500/10 p-2 rounded-lg">
+                            <i data-lucide="arrow-up-circle" class="w-5 h-5 text-emerald-500"></i>
+                        </div>
+                    </div>
+                    <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400 truncate" id="desaTertinggi">-</p>
+                    <p class="text-sm font-semibold text-slate-600 dark:text-slate-300" id="nilaiTertinggi">0%</p>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Capaian Terendah</p>
+                        <div class="bg-amber-500/10 p-2 rounded-lg">
+                            <i data-lucide="arrow-down-circle" class="w-5 h-5 text-amber-500"></i>
+                        </div>
+                    </div>
+                    <p class="text-xl font-bold text-amber-600 dark:text-amber-400 truncate" id="desaTerendah">-</p>
+                    <p class="text-sm font-semibold text-slate-600 dark:text-slate-300" id="nilaiTerendah">0%</p>
+                </div>
+
+                <!-- FITUR 3: DETEKSI ANOMALI DATA -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow" id="anomalyCard">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Peringatan Data</p>
+                        <div class="bg-slate-100 dark:bg-slate-700 p-2 rounded-lg" id="anomalyIcon">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-slate-500"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm font-bold" id="anomalyStatus">Memeriksa...</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" id="anomalyCount">-</p>
+                </div>
+            </div>
+
+            <!-- Anomaly Detail List -->
+            <div id="anomalyList" class="hidden mt-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 sm:p-5">
+                <h4 class="font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-2 mb-3">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    Daftar Peringatan Data
+                </h4>
+                <div id="anomalyItems" class="space-y-2 text-sm"></div>
+            </div>
+        </section>
+
+        <!-- Tab Navigation -->
+        <div class="border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+            <nav class="-mb-px flex space-x-6 sm:space-x-8" aria-label="Tabs">
+                <button class="tab-button tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" data-tab="detail-desa">
+                    <i data-lucide="grid-3x3" class="w-4 h-4 inline mr-2"></i>Detail Per Desa
+                </button>
+                <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 transition-colors" data-tab="heatmap">
+                    <i data-lucide="grid" class="w-4 h-4 inline mr-2"></i>Heatmap Analisis
+                </button>
+                <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 transition-colors" data-tab="target-progress">
+                    <i data-lucide="target" class="w-4 h-4 inline mr-2"></i>Target 2026
+                </button>
+                <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 transition-colors" data-tab="perbandingan">
+                    <i data-lucide="bar-chart-horizontal" class="w-4 h-4 inline mr-2"></i>Perbandingan Capaian
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab Content: Detail Desa -->
+        <div id="tab-detail-desa" class="tab-content space-y-6 animate-fade-in">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <h3 class="text-lg font-semibold flex items-center gap-2">
+                        <i data-lucide="filter" class="w-5 h-5 text-sdgs-blue"></i>
+                        Filter Data Desa
+                    </h3>
+                    <select id="desaFilter" class="w-full sm:w-72 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sdgs-blue focus:border-transparent transition-all">
+                        <option value="all">Semua Desa</option>
+                    </select>
+                </div>
+
+                <!-- Card Grid Desa -->
+                <div id="cardGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                </div>
+            </div>
+        </div>
+
+        <!-- FITUR 2: HEATMAP SDGS SE-KECAMATAN -->
+        <div id="tab-heatmap" class="tab-content hidden animate-fade-in">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <h3 class="text-lg font-semibold flex items-center gap-2">
+                        <i data-lucide="grid" class="w-5 h-5 text-sdgs-blue"></i>
+                        Heatmap Capaian 17 SDGs per Desa
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" id="filterProblematic" class="w-4 h-4 text-sdgs-blue rounded focus:ring-2 focus:ring-sdgs-blue">
+                            <span class="text-slate-700 dark:text-slate-300">Tampilkan hanya bermasalah</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Legend & Stats -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div class="flex items-center gap-2 text-sm">
+                            <div class="w-6 h-6 rounded bg-red-500 border border-red-600"></div>
+                            <span class="text-slate-700 dark:text-slate-300">&lt;60%</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm">
+                            <div class="w-6 h-6 rounded bg-amber-500 border border-amber-600"></div>
+                            <span class="text-slate-700 dark:text-slate-300">60-80%</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm">
+                            <div class="w-6 h-6 rounded bg-emerald-500 border border-emerald-600"></div>
+                            <span class="text-slate-700 dark:text-slate-300">&gt;80%</span>
+                        </div>
+                    </div>
+                    <div class="text-sm font-medium text-slate-700 dark:text-slate-300" id="heatmapStats">
+                        Total cell: 187
+                    </div>
+                </div>
+
+                <!-- Heatmap Table -->
+                <div class="heatmap-container border border-slate-200 dark:border-slate-700 rounded-lg">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr id="heatmapHeader">
+                            </tr>
+                        </thead>
+                        <tbody id="heatmapBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- FITUR 1: TARGET 2026 + PROGRESS TRACKER -->
+        <div id="tab-target-progress" class="tab-content hidden animate-fade-in">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                    <h3 class="text-lg font-semibold flex items-center gap-2">
+                        <i data-lucide="target" class="w-5 h-5 text-sdgs-blue"></i>
+                        Target & Progress Capaian SDGs 2026
+                    </h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setTargetMassal(80)" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Set 80%
+                        </button>
+                        <button onclick="setTargetMassal(85)" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Set 85%
+                        </button>
+                        <button onclick="setTargetMassal(90)" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Set 90%
+                        </button>
+                        <button onclick="resetTargets()" class="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Rekap Card -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl p-5">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-sm font-medium text-green-700 dark:text-green-300">Total Capai Target</p>
+                            <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+                        </div>
+                        <p class="text-3xl font-bold text-green-700 dark:text-green-400" id="totalTargetAchieved">0/187</p>
+                        <p class="text-xs text-green-600 dark:text-green-400 mt-1">Se-Kecamatan</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-sm font-medium text-blue-700 dark:text-blue-300">Desa Terbaik</p>
+                            <i data-lucide="trophy" class="w-5 h-5 text-blue-600"></i>
+                        </div>
+                        <p class="text-xl font-bold text-blue-700 dark:text-blue-400 truncate" id="bestProgressDesa">-</p>
+                        <p class="text-sm font-semibold text-blue-600 dark:text-blue-300" id="bestProgressCount">0/17</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-5">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-sm font-medium text-amber-700 dark:text-amber-300">Avg Progress</p>
+                            <i data-lucide="trending-up" class="w-5 h-5 text-amber-600"></i>
+                        </div>
+                        <p class="text-3xl font-bold text-amber-700 dark:text-amber-400" id="avgProgress">0%</p>
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">vs Target 2026</p>
+                    </div>
+                </div>
+
+                <!-- Target Table -->
+                <div class="target-table-container border border-slate-200 dark:border-slate-700 rounded-lg">
+                    <table class="w-full border-collapse" id="targetTable">
+                        <thead>
+                            <tr id="targetTableHeader">
+                            </tr>
+                        </thead>
+                        <tbody id="targetTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Perbandingan -->
+        <div id="tab-perbandingan" class="tab-content hidden animate-fade-in">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+                <h3 class="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <i data-lucide="bar-chart-big" class="w-5 h-5 text-sdgs-blue"></i>
+                    Perbandingan Capaian Keseluruhan per Desa
+                </h3>
+                <div class="chart-container" style="height:500px;">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<!-- Modal Detail Desa -->
+<div id="desaModal" class="hidden fixed inset-0 z-[100] overflow-y-auto">
+    <div class="modal-overlay fixed inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="modal-content relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="sticky top-0 z-10 bg-gradient-to-r from-sdgs-green to-sdgs-blue text-white p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-bold mb-1" id="modalDesaName">Nama Desa</h2>
+                        <div class="flex flex-wrap items-center gap-4 text-white/90 text-sm">
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="trophy" class="w-4 h-4"></i>
+                                Ranking: <span id="modalRanking" class="font-bold">-</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="percent" class="w-4 h-4"></i>
+                                Total: <span id="modalCapaian" class="font-bold">0%</span>
+                            </span>
+                            <span id="modalBadge" class="hidden items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/20"></span>
+                            <span id="modalTargetBadge" class="hidden target-badge"></span>
+                        </div>
+                    </div>
+                    <button onclick="closeModal()" class="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="overflow-y-auto max-h-[calc(90vh-100px)] p-6">
+                <!-- Modal Tabs -->
+                <div class="border-b border-slate-200 dark:border-slate-700 mb-6">
+                    <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Modal Tabs">
+                        <button class="modal-tab-button tab-active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors" data-modaltab="overview">
+                            <i data-lucide="info" class="w-4 h-4 inline mr-2"></i>Overview
+                        </button>
+                        <button class="modal-tab-button whitespace-nowrap py-3 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 transition-colors" data-modaltab="progress-target">
+                            <i data-lucide="target" class="w-4 h-4 inline mr-2"></i>Progress Target
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Modal Tab Content: Overview -->
+                <div id="modaltab-overview" class="modal-tab-content">
+                    <!-- FITUR 1: AI SUMMARY PER DESA -->
+                    <div class="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
+                        <h3 class="text-base font-bold mb-3 flex items-center gap-2 text-blue-900 dark:text-blue-100">
+                            <span class="text-xl">💡</span>
+                            Analisis Otomatis
+                        </h3>
+                        <div id="aiSummary" class="space-y-3 text-sm"></div>
+                    </div>
+
+                    <!-- Chart Section -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <i data-lucide="bar-chart-2" class="w-5 h-5 text-sdgs-blue"></i>
+                            Grafik Capaian 17 SDGs Desa
+                        </h3>
+                        
+                        <!-- Chart Type Tabs -->
+                        <div class="flex gap-2 mb-4 p-1 bg-slate-100 dark:bg-slate-700 rounded-lg w-fit">
+                            <button id="barChartTab" class="chart-tab-btn chart-tab-active px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2" onclick="switchChartType('bar')">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                                Bar Chart
+                            </button>
+                            <button id="radarChartTab" class="chart-tab-btn px-4 py-2 rounded-md text-sm font-medium transition-all text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-600 flex items-center gap-2" onclick="switchChartType('radar')">
+                                <i data-lucide="scan" class="w-4 h-4"></i>
+                                Radar Chart
+                            </button>
+                        </div>
+
+                        <!-- Bar Chart Container -->
+                        <div id="barChartContainer" class="chart-container">
+                            <canvas id="desaChart"></canvas>
+                        </div>
+
+                        <!-- Radar Chart Container -->
+                        <div id="radarChartContainer" class="radar-chart-container hidden">
+                            <canvas id="desaRadarChart"></canvas>
+                        </div>
+
+                        <!-- Radar Chart Controls -->
+                        <div id="radarControls" class="hidden mt-4 space-y-4">
+                            <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                        <i data-lucide="git-compare" class="w-4 h-4 inline mr-1"></i>
+                                        Bandingkan dengan Desa Lain
+                                    </label>
+                                    <select id="compareDesaSelect" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sdgs-blue focus:border-transparent transition-all">
+                                        <option value="">Pilih desa pembanding...</option>
+                                    </select>
+                                </div>
+                                <button id="downloadRadarBtn" class="bg-gradient-to-r from-sdgs-green to-sdgs-blue hover:opacity-90 text-white px-5 py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2 whitespace-nowrap">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    Download PNG
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SDGs Detail List -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <i data-lucide="list-checks" class="w-5 h-5 text-sdgs-blue"></i>
+                            Detail Capaian per SDGs <span class="text-xs font-normal text-slate-500">(klik untuk lihat penjelasan)</span>
+                        </h3>
+                        <div id="sdgsDetailList" class="space-y-3">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Tab Content: Progress Target -->
+                <div id="modaltab-progress-target" class="modal-tab-content hidden">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <i data-lucide="trending-up" class="w-5 h-5 text-sdgs-blue"></i>
+                            Progress vs Target 2026
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="desaTargetChart"></canvas>
+                        </div>
+                        <div class="mt-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                            <p class="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                <i data-lucide="info" class="w-4 h-4"></i>
+                                <span><strong>Batang Biru:</strong> Capaian Saat Ini | <strong>Garis Merah:</strong> Target 2026</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Penjelasan SDGs -->
+<div id="sdgInfoModal" class="hidden fixed inset-0 z-[110] overflow-y-auto">
+    <div class="modal-overlay fixed inset-0 bg-black/50 backdrop-blur-sm" onclick="closeSdgInfoModal()"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="modal-content relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full">
+            <div class="p-6">
+                <div class="flex items-start justify-between gap-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div id="sdgInfoIcon" class="text-4xl"></div>
+                        <div>
+                            <h3 id="sdgInfoTitle" class="text-xl font-bold text-slate-900 dark:text-slate-100"></h3>
+                            <p id="sdgInfoSubTitle" class="text-sm text-slate-500 dark:text-slate-400"></p>
+                        </div>
+                    </div>
+                    <button onclick="closeSdgInfoModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+                            <div id="sdgInfoProgress" class="h-full rounded-full transition-all duration-500"></div>
+                        </div>
+                        <span id="sdgInfoValue" class="text-lg font-bold"></span>
+                    </div>
+                    <p id="sdgInfoDescription" class="text-slate-700 dark:text-slate-300 leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Export PDF -->
+<div id="exportPdfModal" class="hidden fixed inset-0 z-[105] overflow-y-auto">
+    <div class="modal-overlay fixed inset-0 bg-black/50 backdrop-blur-sm" onclick="closeExportPdfModal()"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="modal-content relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full">
+            <div class="p-6">
+                <div class="flex items-start justify-between gap-4 mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-sdgs-blue/10 p-3 rounded-xl">
+                            <i data-lucide="file-text" class="w-6 h-6 text-sdgs-blue"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">Export Laporan PDF</h3>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Pilih jenis laporan yang akan di-export</p>
+                        </div>
+                    </div>
+                    <button onclick="closeExportPdfModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Laporan Kecamatan -->
+                    <button onclick="exportPdf('kecamatan')" class="w-full text-left bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 hover:border-sdgs-blue dark:hover:border-sdgs-blue rounded-xl p-5 transition-all group">
+                        <div class="flex items-start gap-4">
+                            <div class="bg-blue-500/10 p-3 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                                <i data-lucide="building-2" class="w-6 h-6 text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Laporan Kecamatan Lengkap</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">Cover + Rekap + Ranking + Heatmap + Analisis SDGs Bermasalah</p>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-5 h-5 text-slate-400 group-hover:text-sdgs-blue transition-colors"></i>
+                        </div>
+                    </button>
+
+                    <!-- Laporan Per Desa -->
+                    <div class="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl p-5">
+                        <div class="flex items-start gap-4 mb-4">
+                            <div class="bg-green-500/10 p-3 rounded-lg">
+                                <i data-lucide="home" class="w-6 h-6 text-green-600 dark:text-green-400"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Laporan Per Desa</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400 mb-3">Detail desa + Radar Chart + Rekomendasi</p>
+                                <select id="exportDesaSelect" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sdgs-blue focus:border-transparent transition-all mb-3">
+                                    <option value="">Pilih Desa...</option>
+                                </select>
+                                <button onclick="exportPdf('desa')" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    Download Laporan Desa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Laporan SDGs Bermasalah -->
+                    <button onclick="exportPdf('bermasalah')" class="w-full text-left bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 hover:border-sdgs-blue dark:hover:border-sdgs-blue rounded-xl p-5 transition-all group">
+                        <div class="flex items-start gap-4">
+                            <div class="bg-red-500/10 p-3 rounded-lg group-hover:bg-red-500/20 transition-colors">
+                                <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600 dark:text-red-400"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">Laporan SDGs Bermasalah</h4>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">List semua cell merah di heatmap + Desa terkait + Rekomendasi</p>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-5 h-5 text-slate-400 group-hover:text-sdgs-blue transition-colors"></i>
+                        </div>
+                    </button>
+                </div>
+
+                <div id="pdfLoadingIndicator" class="hidden mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+                        <p class="text-sm text-blue-700 dark:text-blue-300 font-medium">Sedang generate PDF... Mohon tunggu</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-slate-200 dark:border-slate-700 mt-12 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+            <p>&copy; 2026 Dashboard SDGs Kecamatan Barambai. Data dari Google Sheets.</p>
+            <p class="flex items-center gap-1">
+                Dibuat dengan <i data-lucide="heart" class="w-4 h-4 text-red-500 fill-current"></i> untuk Pembangunan Berkelanjutan
+            </p>
+        </div>
+    </div>
+</footer>
+
+<!-- Hidden elements for PDF export -->
+<div id="pdfExportContainer" class="hidden"></div>
+
+<script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRWMF0QyoNK5guFg7enqHi2RjFpCKpvT3s3jtaRFRdfUNpfXybZa17z2Vn9zP_aGQ/pub?gid=333005205&single=true&output=csv';
+    const DESA_LIST = ['Barambai', 'Sungai Kali', 'Pendalaman', 'Handil Barabai', 'Bagagap', 'Barambai Karya Tani', 'Pendalaman Baru', 'Karya Baru', 'Barambai Kolam Kiri', 'Barambai Kolam Kanan', 'Barambai Kolam Kiri Dalam'];
+    
+    const SDGS_DESA_DATA = {
+        1: { nama: 'Desa Tanpa Kemiskinan', icon: '🏠', color: '#E5243B', desc: 'Mengentaskan kemiskinan di desa melalui pemberdayaan ekonomi, bantuan sosial tepat sasaran, dan akses lapangan kerja.' },
+        2: { nama: 'Desa Tanpa Kelaparan', icon: '🌾', color: '#DDA63A', desc: 'Menjamin ketahanan pangan desa, gizi masyarakat tercukupi, pertanian berkelanjutan dan produktif.' },
+        3: { nama: 'Desa Sehat dan Sejahtera', icon: '❤️', color: '#4C9F38', desc: 'Layanan kesehatan dasar berkualitas, akses posyandu, puskesmas, sanitasi lingkungan sehat.' },
+        4: { nama: 'Pendidikan Desa Berkualitas', icon: '📚', color: '#C5192D', desc: 'Akses pendidikan PAUD-SMA, bebas buta aksara, peningkatan literasi dan keterampilan warga.' },
+        5: { nama: 'Keterlibatan Perempuan Desa', icon: '👩', color: '#FF3A21', desc: 'Kesetaraan gender, perempuan terlibat dalam musyawarah desa, bebas kekerasan, akses ekonomi.' },
+        6: { nama: 'Desa Layak Air Bersih dan Sanitasi', icon: '💧', color: '#26BDE2', desc: '100% akses air minum layak, jamban sehat, pengelolaan air limbah domestik.' },
+        7: { nama: 'Desa Berenergi Bersih dan Terbarukan', icon: '⚡', color: '#FCC30B', desc: 'Akses listrik 24 jam, pemanfaatan energi surya/bioenergi, lampu jalan desa.' },
+        8: { nama: 'Pertumbuhan Ekonomi Desa Merata', icon: '📈', color: '#A21942', desc: 'BUMDes aktif, UMKM berkembang, lapangan kerja lokal, PADes meningkat.' },
+        9: { nama: 'Infrastruktur dan Inovasi Desa', icon: '🏗️', color: '#FD6925', desc: 'Jalan desa mantap, jembatan, irigasi, internet desa, inovasi teknologi tepat guna.' },
+        10: { nama: 'Desa Tanpa Kesenjangan', icon: '⚖️', color: '#DD1367', desc: 'Distribusi pembangunan merata, tidak ada warga tertinggal, bantuan sosial adil.' },
+        11: { nama: 'Kawasan Permukiman Desa Aman dan Nyaman', icon: '🏘️', color: '#FD9D24', desc: 'Rumah layak huni, bebas kumuh, ruang terbuka hijau, mitigasi bencana.' },
+        12: { nama: 'Konsumsi Produksi Sadar Lingkungan', icon: '♻️', color: '#BF8B2E', desc: 'Pengelolaan sampah 3R, bank sampah, pertanian organik, hemat energi.' },
+        13: { nama: 'Desa Tanggap Perubahan Iklim', icon: '🌍', color: '#3F7E44', desc: 'Adaptasi banjir/kekeringan, penghijauan, peringatan dini bencana, lumbung pangan.' },
+        14: { nama: 'Desa Peduli Lingkungan Laut', icon: '🌊', color: '#0A97D9', desc: 'Untuk desa pesisir: jaga ekosistem laut, mangrove, terumbu karang, bebas sampah laut.' },
+        15: { nama: 'Desa Peduli Lingkungan Darat', icon: '🌳', color: '#56C02B', desc: 'Jaga hutan desa, reboisasi, bebas kebakaran lahan, keanekaragaman hayati.' },
+        16: { nama: 'Desa Damai Berkeadilan', icon: '🕊️', color: '#00689D', desc: 'Pemerintahan desa transparan, layanan publik mudah, bebas konflik, hukum adat terjaga.' },
+        17: { nama: 'Kemitraan untuk Pembangunan Desa', icon: '🤝', color: '#19486A', desc: 'Kerjasama antar desa, kemitraan swasta, perguruan tinggi, CSR untuk desa.' }
+    };
+    
+    let allData = [];
+    let rankedData = [];
+    let sdgsAverage = {};
+    let targets2026 = {};
+    let desaChart = null;
+    let desaRadarChart = null;
+    let desaTargetChart = null;
+    let comparisonChart = null;
+    let currentDesaData = null;
+    let currentChartType = 'bar';
+    let compareDesaData = null;
+    let anomalies = [];
+    
+    // Initialize targets from localStorage or calculate defaults
+    function initTargets() {
+        const saved = localStorage.getItem('sdgs_targets_2026');
+        if (saved) {
+            targets2026 = JSON.parse(saved);
+        } else {
+            calculateDefaultTargets();
+            saveTargets();
+        }
+    }
+    
+    function calculateDefaultTargets() {
+        targets2026 = {};
+        rankedData.forEach(desa => {
+            targets2026[desa['Nama Desa']] = {};
+            for (let i = 1; i <= 17; i++) {
+                const capaian = desa[`Goal ${i}`] || 0;
+                targets2026[desa['Nama Desa']][i] = capaian < 70 ? Math.min(capaian + 15, 100) : 85;
+            }
+        });
+    }
+    
+    function saveTargets() {
+        localStorage.setItem('sdgs_targets_2026', JSON.stringify(targets2026));
+    }
+    
+    function getTarget(namaDesa, sdgNum) {
+        if (!targets2026[namaDesa]) calculateDefaultTargets();
+        return targets2026[namaDesa][sdgNum] || 85;
+    }
+    
+    function setTarget(namaDesa, sdgNum, value) {
+        if (!targets2026[namaDesa]) targets2026[namaDesa] = {};
+        targets2026[namaDesa][sdgNum] = Math.max(0, Math.min(100, value));
+        saveTargets();
+    }
+    
+    function setTargetMassal(newTarget) {
+        rankedData.forEach(desa => {
+            if (!targets2026[desa['Nama Desa']]) targets2026[desa['Nama Desa']] = {};
+            for (let i = 1; i <= 17; i++) {
+                targets2026[desa['Nama Desa']][i] = newTarget;
+            }
+        });
+        saveTargets();
+        if (document.getElementById('tab-target-progress').classList.contains('hidden') === false) {
+            renderTargetTable();
+            updateTargetRekap();
+        }
+    }
+    
+    function resetTargets() {
+        if (confirm('Reset semua target ke default?')) {
+            calculateDefaultTargets();
+            saveTargets();
+            if (document.getElementById('tab-target-progress').classList.contains('hidden') === false) {
+                renderTargetTable();
+                updateTargetRekap();
+            }
+        }
+    }
+    
+    function calculateProgress(capaian, target) {
+        return target > 0 ? Math.min((capaian / target) * 100, 100) : 0;
+    }
+    
+    function getProgressColor(progress) {
+        if (progress < 50) return '#ef4444';
+        if (progress < 90) return '#f59e0b';
+        return '#10b981';
+    }
+    
+    function countTargetsAchieved(namaDesa) {
+        const desa = rankedData.find(d => d['Nama Desa'] === namaDesa);
+        if (!desa) return 0;
+        let count = 0;
+        for (let i = 1; i <= 17; i++) {
+            const capaian = desa[`Goal ${i}`] || 0;
+            const target = getTarget(namaDesa, i);
+            if (capaian >= target) count++;
+        }
+        return count;
+    }
+    
+    // Dark Mode
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const htmlEl = document.documentElement;
+    
+    function initDarkMode() {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) htmlEl.classList.add('dark');
+        lucide.createIcons();
+    }
+    
+    darkModeToggle.addEventListener('click', () => {
+        htmlEl.classList.toggle('dark');
+        updateChartsTheme();
+        lucide.createIcons();
+    });
+    
+    initDarkMode();
+    
+    // Tab System
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            const tabName = button.dataset.tab;
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+            });
+            button.classList.add('tab-active');
+            button.classList.remove('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            
+            if (tabName === 'perbandingan' && !comparisonChart) {
+                renderComparisonChart();
+            }
+            if (tabName === 'heatmap') {
+                renderHeatmap();
+            }
+            if (tabName === 'target-progress') {
+                renderTargetTable();
+                updateTargetRekap();
+            }
+        });
+    });
+    
+    // Modal Tab System
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.modal-tab-button')) {
+            const button = e.target.closest('.modal-tab-button');
+            const tabName = button.dataset.modaltab;
+            document.querySelectorAll('.modal-tab-button').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+            });
+            button.classList.add('tab-active');
+            button.classList.remove('border-transparent', 'text-slate-500', 'dark:text-slate-400');
+            
+            document.querySelectorAll('.modal-tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`modaltab-${tabName}`).classList.remove('hidden');
+            
+            if (tabName === 'progress-target' && currentDesaData) {
+                renderDesaTargetChart(currentDesaData);
+            }
+        }
+    });
+    
+    // Parse percentage values
+    function parsePercentage(val) {
+        if (!val) return 0;
+        return parseFloat(val.toString().replace('%', '').replace(',', '.')) || 0;
+    }
+    
+    // Clean header names
+    function cleanHeader(header) {
+        header = header.trim();
+        if (header.toLowerCase() === 'gaol 15') return 'Goal 15';
+        if (header.toLowerCase() === 'gaol 17') return 'Goal 17';
+        return header;
+    }
+    
+    // Get card color based on capaian
+    function getCardColor(capaian) {
+        if (capaian < 60) return 'border-red-500 dark:border-red-600';
+        if (capaian < 80) return 'border-amber-500 dark:border-amber-600';
+        return 'border-emerald-500 dark:border-emerald-600';
+    }
+    
+    function getProgressColor(capaian) {
+        if (capaian < 60) return '#ef4444';
+        if (capaian < 80) return '#f59e0b';
+        return '#10b981';
+    }
+    
+    function getHeatmapColor(value) {
+        if (value < 60) return '#EF4444';
+        if (value < 80) return '#F59E0B';
+        return '#10B981';
+    }
+    
+    // Get top 3 SDGs untuk desa
+    function getTop3SDGs(desaData) {
+        const sdgsArray = [];
+        for (let i = 1; i <= 17; i++) {
+            sdgsArray.push({
+                num: i,
+                value: desaData[`Goal ${i}`] || 0,
+                ...SDGS_DESA_DATA[i]
+            });
+        }
+        return sdgsArray.sort((a, b) => b.value - a.value).slice(0, 3);
+    }
+    
+    // Get bottom 3 SDGs untuk desa
+    function getBottom3SDGs(desaData) {
+        const sdgsArray = [];
+        for (let i = 1; i <= 17; i++) {
+            sdgsArray.push({
+                num: i,
+                value: desaData[`Goal ${i}`] || 0,
+                ...SDGS_DESA_DATA[i]
+            });
+        }
+        return sdgsArray.sort((a, b) => a.value - b.value).slice(0, 3);
+    }
+    
+    // Calculate average per SDGs across all desa
+    function calculateSDGSAverage() {
+        sdgsAverage = {};
+        for (let i = 1; i <= 17; i++) {
+            const values = rankedData.map(d => d[`Goal ${i}`] || 0);
+            sdgsAverage[i] = values.reduce((a, b) => a + b, 0) / values.length;
+        }
+    }
+    
+    // FITUR 3: DETEKSI ANOMALI DATA
+    function detectAnomalies() {
+        anomalies = [];
+        rankedData.forEach(desa => {
+            const namaDesa = desa['Nama Desa'];
+            const capaian = desa['Capaian Keseluruhan'];
+            
+            for (let i = 1; i <= 17; i++) {
+                const val = desa[`Goal ${i}`] || 0;
+                if (val < 20) {
+                    anomalies.push({
+                        type: 'data_wajar',
+                        desa: namaDesa,
+                        msg: `⚠️ ${namaDesa}: SDGs ${i} hanya ${val.toFixed(1)}% - cek validitas input`,
+                        severity: 'high'
+                    });
+                } else if (val > 100) {
+                    anomalies.push({
+                        type: 'data_wajar',
+                        desa: namaDesa,
+                        msg: `⚠️ ${namaDesa}: SDGs ${i} ${val.toFixed(1)}% - melebihi 100%`,
+                        severity: 'high'
+                    });
+                }
+            }
+            
+            if (capaian < 40) {
+                anomalies.push({
+                    type: 'verifikasi',
+                    desa: namaDesa,
+                    msg: `⚠️ ${namaDesa}: Capaian keseluruhan ${capaian.toFixed(1)}% - perlu verifikasi lapangan`,
+                    severity: 'medium'
+                });
+            }
+            
+            const sdgValues = [];
+            for (let i = 1; i <= 17; i++) {
+                sdgValues.push(desa[`Goal ${i}`] || 0);
+            }
+            const maxVal = Math.max(...sdgValues);
+            const minVal = Math.min(...sdgValues);
+            if (maxVal - minVal > 50) {
+                anomalies.push({
+                    type: 'ketimpangan',
+                    desa: namaDesa,
+                    msg: `⚠️ ${namaDesa}: Ketimpangan tinggi (${(maxVal - minVal).toFixed(1)}%) antara SDGs tertinggi & terendah`,
+                    severity: 'low'
+                });
+            }
+        });
+    }
+    
+    function renderAnomalyCard() {
+        const card = document.getElementById('anomalyCard');
+        const icon = document.getElementById('anomalyIcon');
+        const status = document.getElementById('anomalyStatus');
+        const count = document.getElementById('anomalyCount');
+        const list = document.getElementById('anomalyList');
+        const items = document.getElementById('anomalyItems');
+        
+        if (anomalies.length === 0) {
+            icon.innerHTML = '<i data-lucide="shield-check" class="w-5 h-5 text-emerald-500"></i>';
+            status.textContent = '✅ Normal';
+            status.className = 'text-sm font-bold text-emerald-600 dark:text-emerald-400';
+            count.textContent = 'Semua data valid';
+            card.classList.remove('border-amber-500', 'border-red-500');
+            card.classList.add('border-emerald-500');
+            list.classList.add('hidden');
+        } else {
+            const hasHigh = anomalies.some(a => a.severity === 'high');
+            icon.innerHTML = '<i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500"></i>';
+            status.textContent = `${anomalies.length} Peringatan`;
+            status.className = hasHigh ? 'text-sm font-bold text-red-600 dark:text-red-400' : 'text-sm font-bold text-amber-600 dark:text-amber-400';
+            count.textContent = 'Klik untuk detail';
+            card.classList.remove('border-emerald-500');
+            card.classList.add(hasHigh ? 'border-red-500' : 'border-amber-500');
+            
+            items.innerHTML = anomalies.map(a => `<div class="text-amber-800 dark:text-amber-300">${a.msg}</div>`).join('');
+            card.style.cursor = 'pointer';
+            card.onclick = () => {
+                list.classList.toggle('hidden');
+            };
+        }
+        lucide.createIcons();
+    }
+    
+    // Load and parse CSV data
+    async function loadData() {
+        document.getElementById('loadingState').classList.remove('hidden');
+        document.getElementById('errorState').classList.add('hidden');
+        document.getElementById('mainContent').classList.add('hidden');
+        
+        try {
+            const response = await fetch(CSV_URL);
+            if (!response.ok) throw new Error('Gagal mengambil data dari server');
+            
+            const csvText = await response.text();
+            
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    allData = results.data
+                        .filter(row => row['Nama Desa'] && DESA_LIST.includes(row['Nama Desa'].trim()))
+                        .map(row => {
+                            const cleanRow = { 'Nama Desa': row['Nama Desa'].trim() };
+                            Object.keys(row).forEach(key => {
+                                const cleanKey = cleanHeader(key);
+                                if (cleanKey.startsWith('Goal') || cleanKey === 'Capaian Keseluruhan') {
+                                    cleanRow[cleanKey] = parsePercentage(row[key]);
+                                }
+                            });
+                            return cleanRow;
+                        });
+                    
+                    if (allData.length === 0) {
+                        throw new Error('Tidak ada data desa yang valid ditemukan');
+                    }
+                    
+                    rankedData = [...allData].sort((a, b) => b['Capaian Keseluruhan'] - a['Capaian Keseluruhan'])
+                        .map((desa, idx) => ({ ...desa, ranking: idx + 1 }));
+                    
+                    calculateSDGSAverage();
+                    detectAnomalies();
+                    initTargets();
+                    renderDashboard();
+                },
+                error: function(error) {
+                    throw new Error('Gagal memproses CSV: ' + error.message);
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error loading data:', error);
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('errorState').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = error.message;
+        }
+    }
+    
+    // Render entire dashboard
+    function renderDashboard() {
+        renderRekapKecamatan();
+        renderAnomalyCard();
+        renderDesaFilter();
+        renderCardGrid(rankedData);
+        populateExportDesaSelect();
+        
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+        lucide.createIcons();
+    }
+    
+    // Render Rekap Kecamatan
+    function renderRekapKecamatan() {
+        const capaianValues = rankedData.map(d => d['Capaian Keseluruhan']);
+        const avg = capaianValues.reduce((a, b) => a + b, 0) / capaianValues.length;
+        
+        const maxCapaian = Math.max(...capaianValues);
+        const minCapaian = Math.min(...capaianValues);
+        const desaMax = rankedData.find(d => d['Capaian Keseluruhan'] === maxCapaian);
+        const desaMin = rankedData.find(d => d['Capaian Keseluruhan'] === minCapaian);
+        
+        document.getElementById('avgCapaian').textContent = avg.toFixed(2) + '%';
+        document.getElementById('totalDesa').textContent = rankedData.length;
+        document.getElementById('desaTertinggi').textContent = desaMax['Nama Desa'];
+        document.getElementById('nilaiTertinggi').textContent = maxCapaian.toFixed(2) + '%';
+        document.getElementById('desaTerendah').textContent = desaMin['Nama Desa'];
+        document.getElementById('nilaiTerendah').textContent = minCapaian.toFixed(2) + '%';
+    }
+    
+    // Render Desa Filter Dropdown
+    function renderDesaFilter() {
+        const filter = document.getElementById('desaFilter');
+        filter.innerHTML = '<option value="all">Semua Desa</option>';
+        rankedData.forEach(desa => {
+            const option = document.createElement('option');
+            option.value = desa['Nama Desa'];
+            option.textContent = desa['Nama Desa'];
+            filter.appendChild(option);
+        });
+        
+        filter.addEventListener('change', (e) => {
+            const selected = e.target.value;
+            if (selected === 'all') {
+                renderCardGrid(rankedData);
+            } else {
+                const filteredData = rankedData.filter(d => d['Nama Desa'] === selected);
+                renderCardGrid(filteredData);
+            }
+        });
+    }
+    
+    // Render Card Grid
+    function renderCardGrid(data) {
+        const grid = document.getElementById('cardGrid');
+        grid.innerHTML = data.map(desa => {
+            const capaian = desa['Capaian Keseluruhan'];
+            const top3 = getTop3SDGs(desa);
+            const cardColorClass = getCardColor(capaian);
+            const progressColor = getProgressColor(capaian);
+            const circumference = 2 * Math.PI * 52;
+            const offset = circumference - (capaian / 100) * circumference;
+            const targetsAchieved = countTargetsAchieved(desa['Nama Desa']);
+            
+            return `
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-2 ${cardColorClass} p-5 cursor-pointer card-hover animate-fade-in" onclick="openDesaModal('${desa['Nama Desa']}')">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-1">${desa['Nama Desa']}</h3>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="badge-rank ${desa.ranking <= 3 ? 'top3' : ''} text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                                    #${desa.ranking} se-Kecamatan
+                                </span>
+                                <span class="target-badge">
+                                    <i data-lucide="target" class="w-3 h-3"></i>
+                                    ${targetsAchieved}/17
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-center mb-4">
+                        <div class="progress-circle">
+                            <svg width="120" height="120">
+                                <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="8" class="text-slate-200 dark:text-slate-700" />
+                                <circle cx="60" cy="60" r="52" fill="none" stroke="${progressColor}" stroke-width="8" stroke-linecap="round"
+                                    stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-2xl font-bold" style="color: ${progressColor}">${capaian.toFixed(1)}%</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400">Capaian</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">3 SDGs Tertinggi:</p>
+                        ${top3.map(sdg => `
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="sdg-icon">${sdg.icon}</span>
+                                <span class="flex-1 text-slate-700 dark:text-slate-300 truncate">${sdg.nama}</span>
+                                <span class="font-bold" style="color: ${sdg.color}">${sdg.value.toFixed(1)}%</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <button class="w-full text-sm font-medium text-sdgs-blue hover:text-sdgs-darkblue flex items-center justify-center gap-1">
+                            Lihat Detail <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        lucide.createIcons();
+    }
+    
+    // FITUR 2: HEATMAP SDGS SE-KECAMATAN
+    function renderHeatmap() {
+        const header = document.getElementById('heatmapHeader');
+        const body = document.getElementById('heatmapBody');
+        const filterProblematic = document.getElementById('filterProblematic').checked;
+        
+        let headerHTML = '<th class="sticky-col sticky-header px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">Desa</th>';
+        for (let i = 1; i <= 17; i++) {
+            headerHTML += `<th class="sticky-header px-2 py-2 text-center text-xs font-semibold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700" title="${SDGS_DESA_DATA[i].nama}">
+                <div class="flex flex-col items-center gap-1">
+                    <span class="text-base">${SDGS_DESA_DATA[i].icon}</span>
+                    <span>SDGs ${i}</span>
+                </div>
+            </th>`;
+        }
+        header.innerHTML = headerHTML;
+        
+        let redCells = 0, yellowCells = 0, greenCells = 0;
+        
+        body.innerHTML = rankedData.map(desa => {
+            const cells = [];
+            for (let i = 1; i <= 17; i++) {
+                const val = desa[`Goal ${i}`] || 0;
+                const color = getHeatmapColor(val);
+                const textColor = val < 60 ? '#FFFFFF' : val < 80 ? '#FFFFFF' : '#FFFFFF';
+                
+                if (val < 60) redCells++;
+                else if (val < 80) yellowCells++;
+                else greenCells++;
+                
+                const showCell = !filterProblematic || val < 60;
+                
+                if (showCell) {
+                    cells.push(`
+                        <td class="heatmap-cell border border-slate-200 dark:border-slate-700 p-1" 
+                            style="background-color: ${color}; color: ${textColor};"
+                            onclick="openDesaModalFromHeatmap('${desa['Nama Desa']}', ${i})"
+                            title="${desa['Nama Desa']} - SDGs ${i}: ${SDGS_DESA_DATA[i].nama} = ${val.toFixed(2)}%">
+                            ${val.toFixed(0)}%
+                        </td>
+                    `);
+                } else {
+                    cells.push(`<td class="heatmap-cell border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700/50" title="Filter: Sembunyikan yang tidak bermasalah"></td>`);
+                }
+            }
+            
+            return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td class="sticky-col px-3 py-2 text-sm font-medium text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700">${desa['Nama Desa']}</td>
+                    ${cells.join('')}
+                </tr>
+            `;
+        }).join('');
+        
+        const total = redCells + yellowCells + greenCells;
+        document.getElementById('heatmapStats').textContent = `Merah: ${redCells} | Kuning: ${yellowCells} | Hijau: ${greenCells} | Total: ${total}`;
+    }
+    
+    document.getElementById('filterProblematic').addEventListener('change', renderHeatmap);
+    
+    function openDesaModalFromHeatmap(namaDesa, sdgNum) {
+        openDesaModal(namaDesa);
+        setTimeout(() => {
+            const sdgEl = document.querySelector(`[onclick*="openSdgInfoModal(${sdgNum},"]`);
+            if (sdgEl) sdgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    }
+    
+    // FITUR 1: TARGET TABLE
+    function renderTargetTable() {
+        const header = document.getElementById('targetTableHeader');
+        const body = document.getElementById('targetTableBody');
+        
+        let headerHTML = '<th class="sticky-col sticky-header px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">Desa</th>';
+        for (let i = 1; i <= 17; i++) {
+            headerHTML += `<th colspan="3" class="sticky-header px-2 py-2 text-center text-xs font-semibold text-slate-700 dark:text-slate-300 border-b border-b-2 border-slate-200 dark:border-slate-700" title="${SDGS_DESA_DATA[i].nama}">
+                <div class="flex flex-col items-center gap-1">
+                    <span class="text-base">${SDGS_DESA_DATA[i].icon}</span>
+                    <span>SDGs ${i}</span>
+                </div>
+            </th>`;
+        }
+        header.innerHTML = headerHTML;
+        
+        let subHeaderHTML = '<tr><th class="sticky-col sticky-header px-3 py-1 text-left text-xs font-medium text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 top-[48px]"></th>';
+        for (let i = 1; i <= 17; i++) {
+            subHeaderHTML += `
+                <th class="sticky-header px-1 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 top-[48px]">Capaian</th>
+                <th class="sticky-header px-1 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 top-[48px]">Target</th>
+                <th class="sticky-header px-1 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 top-[48px] border-r-2 border-slate-300 dark:border-slate-600">Progress</th>
+            `;
+        }
+        subHeaderHTML += '</tr>';
+        header.insertAdjacentHTML('afterend', subHeaderHTML);
+        
+        body.innerHTML = rankedData.map(desa => {
+            const namaDesa = desa['Nama Desa'];
+            const cells = [];
+            for (let i = 1; i <= 17; i++) {
+                const capaian = desa[`Goal ${i}`] || 0;
+                const target = getTarget(namaDesa, i);
+                const progress = calculateProgress(capaian, target);
+                const progressColor = getProgressColor(progress);
+                const achieved = capaian >= target;
+                
+                cells.push(`
+                    <td class="target-cell border border-slate-200 dark:border-slate-700">
+                        <div class="font-semibold" style="color: ${SDGS_DESA_DATA[i].color}">${capaian.toFixed(0)}%</div>
+                    </td>
+                    <td class="target-cell border border-slate-200 dark:border-slate-700">
+                        <div class="editable-cell" ondblclick="editTarget('${namaDesa.replace(/'/g, "\\'")}', ${i})" title="Double-click untuk edit">
+                            ${target.toFixed(0)}%
+                        </div>
+                    </td>
+                    <td class="target-cell border border-slate-200 dark:border-slate-700 border-r-2 border-slate-300 dark:border-slate-600">
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" style="width: ${progress}%; background-color: ${progressColor}">
+                                ${progress >= 25 ? progress.toFixed(0) + '%' : ''}
+                            </div>
+                        </div>
+                        ${achieved ? '<div class="text-center mt-0.5">✅</div>' : ''}
+                    </td>
+                `);
+            }
+            
+            return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                    <td class="sticky-col px-3 py-2 text-sm font-medium text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700">${namaDesa}</td>
+                    ${cells.join('')}
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    function editTarget(namaDesa, sdgNum) {
+        const currentTarget = getTarget(namaDesa, sdgNum);
+        const newTarget = prompt(`Set target 2026 untuk ${namaDesa} - SDGs ${sdgNum}:\n(${SDGS_DESA_DATA[sdgNum].nama})`, currentTarget);
+        if (newTarget !== null) {
+            const val = parseFloat(newTarget);
+            if (!isNaN(val) && val >= 0 && val <= 100) {
+                setTarget(namaDesa, sdgNum, val);
+                renderTargetTable();
+                updateTargetRekap();
+            } else {
+                alert('Target harus antara 0-100%');
+            }
+        }
+    }
+    
+    function updateTargetRekap() {
+        let totalAchieved = 0;
+        let totalCells = 0;
+        const desaProgress = [];
+        
+        rankedData.forEach(desa => {
+            const namaDesa = desa['Nama Desa'];
+            let achieved = 0;
+            for (let i = 1; i <= 17; i++) {
+                const capaian = desa[`Goal ${i}`] || 0;
+                const target = getTarget(namaDesa, i);
+                if (capaian >= target) achieved++;
+                totalCells++;
+            }
+            totalAchieved += achieved;
+            desaProgress.push({ nama: namaDesa, achieved: achieved });
+        });
+        
+        const avgProgress = rankedData.length > 0 
+            ? (rankedData.reduce((sum, desa) => {
+                let progress = 0;
+                for (let i = 1; i <= 17; i++) {
+                    progress += calculateProgress(desa[`Goal ${i}`] || 0, getTarget(desa['Nama Desa'], i));
+                }
+                return sum + (progress / 17);
+            }, 0) / rankedData.length).toFixed(1)
+            : 0;
+        
+        const bestDesa = desaProgress.sort((a, b) => b.achieved - a.achieved)[0];
+        
+        document.getElementById('totalTargetAchieved').textContent = `${totalAchieved}/${totalCells}`;
+        document.getElementById('bestProgressDesa').textContent = bestDesa?.nama || '-';
+        document.getElementById('bestProgressCount').textContent = `${bestDesa?.achieved || 0}/17`;
+        document.getElementById('avgProgress').textContent = avgProgress + '%';
+    }
+    
+    // Switch Chart Type in Modal
+    function switchChartType(type) {
+        currentChartType = type;
+        
+        document.getElementById('barChartTab').classList.remove('chart-tab-active');
+        document.getElementById('radarChartTab').classList.remove('chart-tab-active');
+        document.getElementById('barChartTab').classList.add('text-slate-600', 'dark:text-slate-300');
+        document.getElementById('radarChartTab').classList.add('text-slate-600', 'dark:text-slate-300');
+        
+        if (type === 'bar') {
+            document.getElementById('barChartTab').classList.add('chart-tab-active');
+            document.getElementById('barChartTab').classList.remove('text-slate-600', 'dark:text-slate-300');
+            document.getElementById('barChartContainer').classList.remove('hidden');
+            document.getElementById('radarChartContainer').classList.add('hidden');
+            document.getElementById('radarControls').classList.add('hidden');
+            
+            if (currentDesaData) {
+                renderDesaChart(currentDesaData);
+            }
+        } else {
+            document.getElementById('radarChartTab').classList.add('chart-tab-active');
+            document.getElementById('radarChartTab').classList.remove('text-slate-600', 'dark:text-slate-300');
+            document.getElementById('barChartContainer').classList.add('hidden');
+            document.getElementById('radarChartContainer').classList.remove('hidden');
+            document.getElementById('radarControls').classList.remove('hidden');
+            
+            if (currentDesaData) {
+                renderDesaRadarChart(currentDesaData);
+            }
+        }
+        
+        lucide.createIcons();
+    }
+    
+    // Open Modal Detail Desa
+    function openDesaModal(namaDesa) {
+        const desa = rankedData.find(d => d['Nama Desa'] === namaDesa);
+        if (!desa) return;
+        
+        currentDesaData = desa;
+        compareDesaData = null;
+        
+        document.getElementById('modalDesaName').textContent = desa['Nama Desa'];
+        document.getElementById('modalRanking').textContent = `#${desa.ranking}`;
+        document.getElementById('modalCapaian').textContent = desa['Capaian Keseluruhan'].toFixed(2) + '%';
+        
+        const badge = document.getElementById('modalBadge');
+        const capaian = desa['Capaian Keseluruhan'];
+        if (capaian > 70) {
+            badge.textContent = '🏆 Most Improved';
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+        } else if (capaian < 55) {
+            badge.textContent = '⚠️ Perlu Intervensi';
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+        }
+        
+        const targetsAchieved = countTargetsAchieved(desa['Nama Desa']);
+        const targetBadge = document.getElementById('modalTargetBadge');
+        targetBadge.innerHTML = `<i data-lucide="target" class="w-3 h-3"></i> ${targetsAchieved}/17 Target`;
+        targetBadge.classList.remove('hidden');
+        targetBadge.classList.add('flex');
+        
+        renderAISummary(desa);
+        
+        const compareSelect = document.getElementById('compareDesaSelect');
+        compareSelect.innerHTML = '<option value="">Pilih desa pembanding...</option>';
+        rankedData.filter(d => d['Nama Desa'] !== desa['Nama Desa']).forEach(d => {
+            const option = document.createElement('option');
+            option.value = d['Nama Desa'];
+            option.textContent = d['Nama Desa'];
+            compareSelect.appendChild(option);
+        });
+        
+        currentChartType = 'bar';
+        document.getElementById('barChartTab').click();
+        renderDesaChart(desa);
+        renderSDGsDetailList(desa);
+        
+        document.getElementById('desaModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        lucide.createIcons();
+    }
+    
+    // FITUR 1: AI SUMMARY PER DESA
+    function renderAISummary(desa) {
+        const summaryEl = document.getElementById('aiSummary');
+        const top3 = getTop3SDGs(desa);
+        const bottom3 = getBottom3SDGs(desa);
+        const namaDesa = desa['Nama Desa'];
+        
+        const gaps = bottom3.map(sdg => {
+            const avg = sdgsAverage[sdg.num];
+            const gap = sdg.value - avg;
+            return {
+                ...sdg,
+                avg: avg,
+                gap: gap,
+                gapText: gap >= 0 ? `+${gap.toFixed(1)}%` : `${gap.toFixed(1)}%`
+            };
+        });
+        
+        summaryEl.innerHTML = `
+            <div>
+                <p class="text-blue-900 dark:text-blue-100 font-semibold mb-1 flex items-center gap-1">
+                    <span>📊</span> Kekuatan Utama:
+                </p>
+                <p class="text-blue-800 dark:text-blue-200 ml-6">
+                    SDGs ${top3.map(s => `<span class="font-bold">${s.num}</span>`).join(', SDGs ')} 
+                    <span class="text-xs">(${top3.map(s => `${s.value.toFixed(0)}%`).join(', ')})</span>
+                </p>
+            </div>
+            <div>
+                <p class="text-amber-900 dark:text-amber-100 font-semibold mb-1 flex items-center gap-1">
+                    <span>⚠️</span> Perlu Perhatian:
+                </p>
+                <p class="text-amber-800 dark:text-amber-200 ml-6">
+                    SDGs ${bottom3.map(s => `<span class="font-bold">${s.num}</span>`).join(', SDGs ')}
+                    <span class="text-xs">(${bottom3.map(s => `${s.value.toFixed(0)}%`).join(', ')})</span>
+                </p>
+            </div>
+            <div>
+                <p class="text-slate-900 dark:text-slate-100 font-semibold mb-1 flex items-center gap-1">
+                    <span>📈</span> Gap vs Rata-rata Kecamatan:
+                </p>
+                <div class="ml-6 space-y-1">
+                    ${gaps.map(g => `
+                        <p class="text-xs text-slate-700 dark:text-slate-300">
+                            SDGs ${g.num}: ${g.value.toFixed(1)}% vs Rata-rata ${g.avg.toFixed(1)}% 
+                            <span class="font-bold ${g.gap >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}">(${g.gapText})</span>
+                        </p>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Close Modal
+    function closeModal() {
+        document.getElementById('desaModal').classList.add('hidden');
+        document.body.style.overflow = '';
+        currentDesaData = null;
+        compareDesaData = null;
+        if (desaRadarChart) {
+            desaRadarChart.destroy();
+            desaRadarChart = null;
+        }
+        if (desaTargetChart) {
+            desaTargetChart.destroy();
+            desaTargetChart = null;
+        }
+    }
+    
+    // Render Bar Chart for single desa
+    function renderDesaChart(desaData) {
+        const ctx = document.getElementById('desaChart');
+        const isDark = htmlEl.classList.contains('dark');
+        
+        const labels = [];
+        const values = [];
+        const colors = [];
+        const borderColors = [];
+        const fullLabels = [];
+        
+        for (let i = 1; i <= 17; i++) {
+            const sdg = SDGS_DESA_DATA[i];
+            labels.push(`${sdg.icon} SDGs ${i}`);
+            values.push(desaData[`Goal ${i}`] || 0);
+            colors.push(sdg.color + 'CC');
+            borderColors.push(sdg.color);
+            fullLabels.push(`${sdg.icon} SDGs ${i}: ${sdg.nama}`);
+        }
+        
+        if (desaChart) desaChart.destroy();
+        
+        desaChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Capaian %',
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: borderColors,
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                        titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                        bodyColor: isDark ? '#cbd5e1' : '#475569',
+                        borderColor: isDark ? '#334155' : '#e2e8f0',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            title: (context) => fullLabels[context[0].dataIndex],
+                            label: (context) => `Capaian: ${context.parsed.y.toFixed(2)}%`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: isDark ? '#94a3b8' : '#64748b',
+                            callback: (value) => value + '%'
+                        },
+                        grid: { color: isDark ? '#334155' : '#e2e8f0' }
+                    },
+                    x: {
+                        ticks: { 
+                            color: isDark ? '#94a3b8' : '#64748b',
+                            maxRotation: 90,
+                            minRotation: 45,
+                            font: { size: 10 }
+                        },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Render Radar Chart for desa
+    function renderDesaRadarChart(desaData, compareData = null) {
+        const ctx = document.getElementById('desaRadarChart');
+        const isDark = htmlEl.classList.contains('dark');
+        
+        const labels = [];
+        const values = [];
+        const tooltips = [];
+        
+        for (let i = 1; i <= 17; i++) {
+            const sdg = SDGS_DESA_DATA[i];
+            labels.push(`${sdg.icon} ${i}`);
+            values.push(desaData[`Goal ${i}`] || 0);
+            tooltips.push(`${sdg.icon} SDGs ${i}: ${sdg.nama} - ${(desaData[`Goal ${i}`] || 0).toFixed(2)}%`);
+        }
+        
+        const datasets = [{
+            label: desaData['Nama Desa'],
+            data: values,
+            backgroundColor: 'rgba(14, 165, 233, 0.2)',
+            borderColor: 'rgba(14, 165, 233, 1)',
+            borderWidth: 3,
+            pointBackgroundColor: 'rgba(14, 165, 233, 1)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+        }];
+        
+        if (compareData) {
+            const compareValues = [];
+            for (let i = 1; i <= 17; i++) {
+                compareValues.push(compareData[`Goal ${i}`] || 0);
+            }
+            
+            datasets.push({
+                label: compareData['Nama Desa'],
+                data: compareValues,
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                borderColor: 'rgba(239, 68, 68, 1)',
+                borderWidth: 3,
+                pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            });
+        }
+        
+        if (desaRadarChart) desaRadarChart.destroy();
+        
+        desaRadarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            color: isDark ? '#cbd5e1' : '#475569',
+                            padding: 20,
+                            font: { size: 13, weight: '600' },
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                        titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                        bodyColor: isDark ? '#cbd5e1' : '#475569',
+                        borderColor: isDark ? '#334155' : '#e2e8f0',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                const dataIndex = context.dataIndex;
+                                const datasetIndex = context.datasetIndex;
+                                if (datasetIndex === 0) {
+                                    return tooltips[dataIndex];
+                                } else if (compareData) {
+                                    const sdg = SDGS_DESA_DATA[dataIndex + 1];
+                                    return `${sdg.icon} SDGs ${dataIndex + 1}: ${sdg.nama} - ${(compareData[`Goal ${dataIndex + 1}`] || 0).toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: isDark ? '#94a3b8' : '#64748b',
+                            backdropColor: 'transparent',
+                            stepSize: 20,
+                            callback: (value) => value + '%'
+                        },
+                        grid: {
+                            color: isDark ? '#334155' : '#e2e8f0'
+                        },
+                        angleLines: {
+                            color: isDark ? '#334155' : '#e2e8f0'
+                        },
+                        pointLabels: {
+                            color: isDark ? '#cbd5e1' : '#475569',
+                            font: { size: 11, weight: '600' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Render Target Chart for desa
+    function renderDesaTargetChart(desaData) {
+        const ctx = document.getElementById('desaTargetChart');
+        const isDark = htmlEl.classList.contains('dark');
+        const namaDesa = desaData['Nama Desa'];
+        
+        const labels = [];
+        const capaianData = [];
+        const targetData = [];
+        const colors = [];
+        
+        for (let i = 1; i <= 17; i++) {
+            const sdg = SDGS_DESA_DATA[i];
+            labels.push(`${sdg.icon} ${i}`);
+            capaianData.push(desaData[`Goal ${i}`] || 0);
+            targetData.push(getTarget(namaDesa, i));
+            colors.push(sdg.color);
+        }
+        
+        if (desaTargetChart) desaTargetChart.destroy();
+        
+        desaTargetChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Capaian',
+                        data: capaianData,
+                        backgroundColor: colors.map(c => c + 'CC'),
+                        borderColor: colors,
+                        borderWidth: 2,
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Target 2026',
+                        data: targetData,
+                        type: 'line',
+                        borderColor: '#ef4444',
+                        backgroundColor: '#ef4444',
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            color: isDark ? '#cbd5e1' : '#475569',
+                            padding: 15,
+                            font: { size: 13, weight: '600' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                        titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                        bodyColor: isDark ? '#cbd5e1' : '#475569',
+                        borderColor: isDark ? '#334155' : '#e2e8f0',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            title: (context) => `${SDGS_DESA_DATA[context[0].dataIndex + 1].icon} SDGs ${context[0].dataIndex + 1}: ${SDGS_DESA_DATA[context[0].dataIndex + 1].nama}`,
+                            label: (context) => {
+                                const label = context.dataset.label;
+                                const value = context.parsed.y;
+                                return `${label}: ${value.toFixed(1)}%`;
+                            },
+                            afterBody: (context) => {
+                                const idx = context[0].dataIndex;
+                                const capaian = capaianData[idx];
+                                const target = targetData[idx];
+                                const progress = calculateProgress(capaian, target);
+                                const gap = target - capaian;
+                                return [
+                                    '',
+                                    `Progress: ${progress.toFixed(1)}%`,
+                                    gap > 0 ? `Gap: ${gap.toFixed(1)}% lagi` : '✅ Target tercapai!'
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: isDark ? '#94a3b8' : '#64748b',
+                            callback: (value) => value + '%'
+                        },
+                        grid: { color: isDark ? '#334155' : '#e2e8f0' }
+                    },
+                    x: {
+                        ticks: { 
+                            color: isDark ? '#94a3b8' : '#64748b',
+                            font: { size: 10 }
+                        },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Compare Desa Handler
+    document.getElementById('compareDesaSelect').addEventListener('change', function(e) {
+        const selectedDesa = e.target.value;
+        if (selectedDesa && currentDesaData) {
+            compareDesaData = rankedData.find(d => d['Nama Desa'] === selectedDesa);
+            if (compareDesaData) {
+                renderDesaRadarChart(currentDesaData, compareDesaData);
+            }
+        } else {
+            compareDesaData = null;
+            if (currentDesaData) {
+                renderDesaRadarChart(currentDesaData);
+            }
+        }
+    });
+    
+    // Download Radar Chart
+    document.getElementById('downloadRadarBtn').addEventListener('click', function() {
+        if (desaRadarChart) {
+            const link = document.createElement('a');
+            const desaName = currentDesaData['Nama Desa'].replace(/\s+/g, '_');
+            link.download = `Radar_SDGs_${desaName}_2026.png`;
+            link.href = desaRadarChart.toBase64Image('image/png', 1.0);
+            link.click();
+        }
+    });
+    
+    // Render SDGs Detail List in Modal
+    function renderSDGsDetailList(desaData) {
+        const list = document.getElementById('sdgsDetailList');
+        const sdgsArray = [];
+        
+        for (let i = 1; i <= 17; i++) {
+            sdgsArray.push({
+                num: i,
+                value: desaData[`Goal ${i}`] || 0,
+                ...SDGS_DESA_DATA[i]
+            });
+        }
+        
+        sdgsArray.sort((a, b) => b.value - a.value);
+        
+        list.innerHTML = sdgsArray.map(sdg => `
+            <div class="sdg-progress-item bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 cursor-pointer" onclick="openSdgInfoModal(${sdg.num}, ${sdg.value})">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-2xl">${sdg.icon}</span>
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-slate-900 dark:text-slate-100">SDGs ${sdg.num}: ${sdg.nama}</h4>
+                    </div>
+                    <span class="text-lg font-bold" style="color: ${sdg.color}">${sdg.value.toFixed(1)}%</span>
+                </div>
+                <div class="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2.5 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500" style="width: ${sdg.value}%; background-color: ${sdg.color}"></div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // Open SDGs Info Modal
+    function openSdgInfoModal(sdgNum, value) {
+        const sdg = SDGS_DESA_DATA[sdgNum];
+        if (!sdg) return;
+        
+        document.getElementById('sdgInfoIcon').textContent = sdg.icon;
+        document.getElementById('sdgInfoTitle').textContent = `SDGs ${sdgNum}`;
+        document.getElementById('sdgInfoSubTitle').textContent = sdg.nama;
+        document.getElementById('sdgInfoValue').textContent = value.toFixed(2) + '%';
+        document.getElementById('sdgInfoValue').style.color = sdg.color;
+        document.getElementById('sdgInfoProgress').style.width = value + '%';
+        document.getElementById('sdgInfoProgress').style.backgroundColor = sdg.color;
+        document.getElementById('sdgInfoDescription').textContent = sdg.desc;
+        
+        document.getElementById('sdgInfoModal').classList.remove('hidden');
+        lucide.createIcons();
+    }
+    
+    // Close SDGs Info Modal
+    function closeSdgInfoModal() {
+        document.getElementById('sdgInfoModal').classList.add('hidden');
+    }
+    
+    // Render Comparison Chart
+    function renderComparisonChart() {
+        const ctx = document.getElementById('comparisonChart');
+        const isDark = htmlEl.classList.contains('dark');
+        
+        const labels = rankedData.map(d => d['Nama Desa']);
+        const values = rankedData.map(d => d['Capaian Keseluruhan']);
+        
+        if (comparisonChart) comparisonChart.destroy();
+        
+        comparisonChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Capaian Keseluruhan %',
+                    data: values,
+                    backgroundColor: 'rgba(14, 165, 233, 0.8)',
+                    borderColor: 'rgb(14, 165, 233)',
+                    borderWidth: 2,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                        titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                        bodyColor: isDark ? '#cbd5e1' : '#475569',
+                        borderColor: isDark ? '#334155' : '#e2e8f0',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            label: (context) => `Capaian: ${context.parsed.x.toFixed(2)}%`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: isDark ? '#94a3b8' : '#64748b',
+                            callback: (value) => value + '%'
+                        },
+                        grid: { color: isDark ? '#334155' : '#e2e8f0' }
+                    },
+                    y: {
+                        ticks: { color: isDark ? '#94a3b8' : '#64748b' },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Update charts theme on dark mode toggle
+    function updateChartsTheme() {
+        if (desaChart) {
+            const isDark = htmlEl.classList.contains('dark');
+            desaChart.options.scales.y.ticks.color = isDark ? '#94a3b8' : '#64748b';
+            desaChart.options.scales.y.grid.color = isDark ? '#334155' : '#e2e8f0';
+            desaChart.options.scales.x.ticks.color = isDark ? '#94a3b8' : '#64748b';
+            desaChart.update();
+        }
+        if (desaRadarChart) {
+            const isDark = htmlEl.classList.contains('dark');
+            desaRadarChart.options.plugins.legend.labels.color = isDark ? '#cbd5e1' : '#475569';
+            desaRadarChart.options.scales.r.ticks.color = isDark ? '#94a3b8' : '#64748b';
+            desaRadarChart.options.scales.r.grid.color = isDark ? '#334155' : '#e2e8f0';
+            desaRadarChart.options.scales.r.angleLines.color = isDark ? '#334155' : '#e2e8f0';
+            desaRadarChart.options.scales.r.pointLabels.color = isDark ? '#cbd5e1' : '#475569';
+            desaRadarChart.update();
+        }
+        if (desaTargetChart) {
+            const isDark = htmlEl.classList.contains('dark');
+            desaTargetChart.options.plugins.legend.labels.color = isDark ? '#cbd5e1' : '#475569';
+            desaTargetChart.options.scales.y.ticks.color = isDark ? '#94a3b8' : '#64748b';
+            desaTargetChart.options.scales.y.grid.color = isDark ? '#334155' : '#e2e8f0';
+            desaTargetChart.options.scales.x.ticks.color = isDark ? '#94a3b8' : '#64748b';
+            desaTargetChart.update();
+        }
+        if (comparisonChart) {
+            const isDark = htmlEl.classList.contains('dark');
+            comparisonChart.options.scales.x.ticks.color = isDark ? '#94a3b8' : '#64748b';
+            comparisonChart.options.scales.x.grid.color = isDark ? '#334155' : '#e2e8f0';
+            comparisonChart.options.scales.y.ticks.color = isDark ? '#94a3b8' : '#64748b';
+            comparisonChart.update();
+        }
+    }
+    
+    // FITUR 2: EXPORT PDF
+    function populateExportDesaSelect() {
+        const select = document.getElementById('exportDesaSelect');
+        select.innerHTML = '<option value="">Pilih Desa...</option>';
+        rankedData.forEach(desa => {
+            const option = document.createElement('option');
+            option.value = desa['Nama Desa'];
+            option.textContent = desa['Nama Desa'];
+            select.appendChild(option);
+        });
+    }
+    
+    document.getElementById('exportPdfBtn').addEventListener('click', () => {
+        document.getElementById('exportPdfModal').classList.remove('hidden');
+    });
+    
+    function closeExportPdfModal() {
+        document.getElementById('exportPdfModal').classList.add('hidden');
+    }
+    
+    async function exportPdf(type) {
+        const loadingIndicator = document.getElementById('pdfLoadingIndicator');
+        loadingIndicator.classList.remove('hidden');
+        
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 15;
+            const contentWidth = pageWidth - 2 * margin;
+            const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+            
+            if (type === 'kecamatan') {
+                await generateKecamatanPDF(pdf, pageWidth, pageHeight, margin, contentWidth, dateStr);
+            } else if (type === 'desa') {
+                const desaName = document.getElementById('exportDesaSelect').value;
+                if (!desaName) {
+                    alert('Pilih desa terlebih dahulu!');
+                    loadingIndicator.classList.add('hidden');
+                    return;
+                }
+                await generateDesaPDF(pdf, desaName, pageWidth, pageHeight, margin, contentWidth, dateStr);
+            } else if (type === 'bermasalah') {
+                await generateBermasalahPDF(pdf, pageWidth, pageHeight, margin, contentWidth, dateStr);
+            }
+            
+            const filename = `Laporan_SDGs_Barambai_2026_${type}_${new Date().toISOString().split('T')[0]}.pdf`;
+            pdf.save(filename);
+            
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Gagal generate PDF. Silakan coba lagi.');
+        } finally {
+            loadingIndicator.classList.add('hidden');
+            closeExportPdfModal();
+        }
+    }
+    
+    async function generateKecamatanPDF(pdf, pageWidth, pageHeight, margin, contentWidth, dateStr) {
+        let yPos = margin;
+        
+        // HALAMAN 1: COVER
+        pdf.setFillColor(5, 150, 105);
+        pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+        
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(28);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('LAPORAN SDGs DESA', pageWidth / 2, 80, { align: 'center' });
+        
+        pdf.setFontSize(20);
+        pdf.text('KECAMATAN BARAMBAI', pageWidth / 2, 95, { align: 'center' });
+        
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('Tahun 2026', pageWidth / 2, 110, { align: 'center' });
+        
+        // Stats box
+        const avgCapaian = (rankedData.reduce((sum, d) => sum + d['Capaian Keseluruhan'], 0) / rankedData.length).toFixed(1);
+        pdf.setFillColor(255, 255, 255, 0.2);
+        pdf.roundedRect(margin + 20, 140, contentWidth - 40, 60, 5, 5, 'F');
+        
+        pdf.setFontSize(12);
+        pdf.text(`Rata-rata Capaian: ${avgCapaian}%`, pageWidth / 2, 160, { align: 'center' });
+        pdf.text(`Total Desa: ${rankedData.length} Desa`, pageWidth / 2, 170, { align: 'center' });
+        pdf.text(`Tanggal Generate: ${dateStr}`, pageWidth / 2, 180, { align: 'center' });
+        
+        // Footer cover
+        pdf.setFontSize(10);
+        pdf.text('Pemerintah Kecamatan Barambai', pageWidth / 2, pageHeight - 30, { align: 'center' });
+        pdf.text('Kabupaten Barito Kuala', pageWidth / 2, pageHeight - 23, { align: 'center' });
+        
+        // HALAMAN 2: RINGKASAN EKSEKUTIF
+        pdf.addPage();
+        yPos = margin;
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('RINGKASAN EKSEKUTIF', margin, yPos);
+        yPos += 10;
+        
+        pdf.setDrawColor(5, 150, 105);
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+        
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'normal');
+        
+        const summary = [
+            `Laporan ini menyajikan capaian 17 Sustainable Development Goals (SDGs) untuk ${rankedData.length} desa di Kecamatan Barambai tahun 2026.`,
+            ``,
+            `Pencapaian rata-rata kecamatan sebesar ${avgCapaian}%. Desa dengan capaian tertinggi adalah ${rankedData[0]['Nama Desa']} (${rankedData[0]['Capaian Keseluruhan'].toFixed(1)}%) dan terendah ${rankedData[rankedData.length-1]['Nama Desa']} (${rankedData[rankedData.length-1]['Capaian Keseluruhan'].toFixed(1)}%).`,
+            ``,
+            `Analisis menunjukkan adanya variasi capaian antar SDGs. Program intervensi diperlukan untuk SDGs dengan capaian rendah agar pembangunan desa merata.`
+        ];
+        
+        summary.forEach(line => {
+            if (line === '') {
+                yPos += 5;
+            } else {
+                const lines = pdf.splitTextToSize(line, contentWidth);
+                pdf.text(lines, margin, yPos);
+                yPos += lines.length * 6;
+            }
+        });
+        
+        // HALAMAN 3: RANKING DESA
+        pdf.addPage();
+        yPos = margin;
+        
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('PERINGKAT CAPAIAN DESA', margin, yPos);
+        yPos += 10;
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('No', margin, yPos);
+        pdf.text('Nama Desa', margin + 15, yPos);
+        pdf.text('Capaian', pageWidth - margin - 20, yPos, { align: 'right' });
+        yPos += 6;
+        pdf.setLineWidth(0.3);
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 5;
+        
+        pdf.setFont('helvetica', 'normal');
+        rankedData.forEach((desa, idx) => {
+            if (yPos > pageHeight - 30) {
+                pdf.addPage();
+                yPos = margin;
+            }
+            pdf.text(String(idx + 1), margin, yPos);
+            pdf.text(desa['Nama Desa'], margin + 15, yPos);
+            pdf.text(desa['Capaian Keseluruhan'].toFixed(1) + '%', pageWidth - margin - 20, yPos, { align: 'right' });
+            yPos += 7;
+        });
+        
+        // HALAMAN 4: HEATMAP
+        pdf.addPage();
+        yPos = margin;
+        
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('HEATMAP CAPAIAN 17 SDGs', margin, yPos);
+        yPos += 10;
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+        
+        pdf.setFontSize(8);
+        pdf.text('Legenda: ', margin, yPos);
+        pdf.setFillColor(239, 68, 68);
+        pdf.rect(margin + 20, yPos - 3, 5, 3, 'F');
+        pdf.text('<60%', margin + 27, yPos);
+        pdf.setFillColor(245, 158, 11);
+        pdf.rect(margin + 45, yPos - 3, 5, 3, 'F');
+        pdf.text('60-80%', margin + 52, yPos);
+        pdf.setFillColor(16, 185, 129);
+        pdf.rect(margin + 75, yPos - 3, 5, 3, 'F');
+        pdf.text('>80%', margin + 82, yPos);
+        yPos += 8;
+        
+        // Render heatmap as table
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Desa', margin, yPos);
+        for (let i = 1; i <= 17; i++) {
+            pdf.text(String(i), margin + 35 + (i-1) * 8, yPos, { align: 'center' });
+        }
+        yPos += 5;
+        
+        pdf.setFont('helvetica', 'normal');
+        rankedData.forEach(desa => {
+            if (yPos > pageHeight - 30) {
+                pdf.addPage();
+                yPos = margin;
+            }
+            pdf.text(desa['Nama Desa'].substring(0, 20), margin, yPos);
+            for (let i = 1; i <= 17; i++) {
+                const val = desa[`Goal ${i}`] || 0;
+                const color = val < 60 ? [239, 68, 68] : val < 80 ? [245, 158, 11] : [16, 185, 129];
+                pdf.setFillColor(...color);
+                pdf.rect(margin + 30 + (i-1) * 8, yPos - 2.5, 7, 3, 'F');
+                pdf.setTextColor(255, 255, 255);
+                pdf.text(val.toFixed(0), margin + 33.5 + (i-1) * 8, yPos - 0.5, { align: 'center' });
+                pdf.setTextColor(0, 0, 0);
+            }
+            yPos += 5;
+        });
+        
+        // HALAMAN 5: REKOMENDASI
+        pdf.addPage();
+        yPos = margin;
+        
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('ANALISIS & REKOMENDASI', margin, yPos);
+        yPos += 10;
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+        
+        // Analisis SDGs terendah
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('SDGs dengan Capaian Terendah Kecamatan:', margin, yPos);
+        yPos += 7;
+        
+        const sdgTotals = {};
+        for (let i = 1; i <= 17; i++) {
+            sdgTotals[i] = rankedData.reduce((sum, d) => sum + (d[`Goal ${i}`] || 0), 0) / rankedData.length;
+        }
+        const bottomSDGs = Object.entries(sdgTotals).sort((a, b) => a[1] - b[1]).slice(0, 3);
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        bottomSDGs.forEach(([num, avg]) => {
+            const sdg = SDGS_DESA_DATA[Number(num)];
+            pdf.text(`${sdg.icon} SDGs ${num}: ${sdg.nama} (${avg.toFixed(1)}%)`, margin + 5, yPos);
+            yPos += 6;
+        });
+        
+        yPos += 5;
+        
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Rekomendasi Kebijakan:', margin, yPos);
+        yPos += 7;
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        const recommendations = [
+            '1. Fokus program intervensi pada 3 SDGs dengan capaian terendah',
+            '2. Replikasi best practice dari desa dengan capaian tertinggi',
+            '3. Alokasi DAU/DDS khusus untuk peningkatan SDGs prioritas',
+            '4. Pendampingan intensif untuk desa dengan capaian <60%',
+            '5. Monitoring bulanan target 2026 melalui dashboard ini'
+        ];
+        
+        recommendations.forEach(rec => {
+            const lines = pdf.splitTextToSize(rec, contentWidth);
+            pdf.text(lines, margin + 5, yPos);
+            yPos += lines.length * 6;
+        });
+        
+        // Footer di setiap halaman
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            pdf.setFontSize(8);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`Halaman ${i} dari ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            pdf.text(dateStr, pageWidth - margin, pageHeight - 10, { align: 'right' });
+        }
+    }
+    
+    async function generateDesaPDF(pdf, desaName, pageWidth, pageHeight, margin, contentWidth, dateStr) {
+        const desa = rankedData.find(d => d['Nama Desa'] === desaName);
+        if (!desa) return;
+        
+        let yPos = margin;
+        
+        // COVER
+        pdf.setFillColor(14, 165, 233);
+        pdf.rect(0, 0, pageWidth, 60, 'F');
+        
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(24);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('LAPORAN SDGs DESA', pageWidth / 2, 25, { align: 'center' });
+        
+        pdf.setFontSize(20);
+        pdf.text(desaName.toUpperCase(), pageWidth / 2, 40, { align: 'center' });
+        
+        pdf.setFontSize(14);
+        pdf.text('Kecamatan Barambai Tahun 2026', pageWidth / 2, 50, { align: 'center' });
+        
+        yPos = 75;
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('PROFIL CAPAIAN', margin, yPos);
+        yPos += 8;
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 10;
+        
+        // Stats
+        pdf.setFillColor(240, 249, 255);
+        pdf.roundedRect(margin, yPos, contentWidth, 40, 3, 3, 'F');
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Total Capaian: ${desa['Capaian Keseluruhan'].toFixed(1)}%`, margin + 10, yPos + 10);
+        pdf.text(`Peringkat Kecamatan: #${desa.ranking} dari ${rankedData.length}`, margin + 10, yPos + 18);
+        pdf.text(`Target Tercapai: ${countTargetsAchieved(desaName)}/17 SDGs`, margin + 10, yPos + 26);
+        yPos += 50;
+        
+        // AI Summary
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('ANALISIS OTOMATIS', margin, yPos);
+        yPos += 8;
+        
+        const top3 = getTop3SDGs(desa);
+        const bottom3 = getBottom3SDGs(desa);
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Kekuatan Utama:', margin, yPos);
+        yPos += 6;
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(top3.map(s => `SDGs ${s.num} (${s.value.toFixed(0)}%)`).join(', '), margin + 5, yPos);
+        yPos += 8;
+        
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Perlu Perhatian:', margin, yPos);
+        yPos += 6;
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(bottom3.map(s => `SDGs ${s.num} (${s.value.toFixed(0)}%)`).join(', '), margin + 5, yPos);
+        yPos += 12;
+        
+        // Chart - ambil dari canvas
+        const chartCanvas = document.getElementById('desaChart');
+        if (chartCanvas) {
+            const imgData = chartCanvas.toDataURL('image/png', 1.0);
+            pdf.addImage(imgData, 'PNG', margin, yPos, contentWidth, 80);
+            yPos += 85;
+        }
+        
+        // Detail SDGs
+        pdf.addPage();
+        yPos = margin;
+        
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('DETAIL CAPAIAN 17 SDGs', margin, yPos);
+        yPos += 10;
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+        
+        pdf.setFontSize(9);
+        for (let i = 1; i <= 17; i++) {
+            if (yPos > pageHeight - 30) {
+                pdf.addPage();
+                yPos = margin;
+            }
+            const sdg = SDGS_DESA_DATA[i];
+            const val = desa[`Goal ${i}`] || 0;
+            const target = getTarget(desaName, i);
+            const progress = calculateProgress(val, target);
+            
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`${sdg.icon} SDGs ${i}: ${sdg.nama}`, margin, yPos);
+            yPos += 5;
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Capaian: ${val.toFixed(1)}% | Target: ${target.toFixed(0)}% | Progress: ${progress.toFixed(0)}%`, margin + 5, yPos);
+            
+            const barWidth = 100;
+            const barX = pageWidth - margin - barWidth;
+            pdf.setDrawColor(200, 200, 200);
+            pdf.rect(barX, yPos - 3, barWidth, 3);
+            const fillColor = getProgressColor(progress);
+            const rgb = [parseInt(fillColor.slice(1,3), 16), parseInt(fillColor.slice(3,5), 16), parseInt(fillColor.slice(5,7), 16)];
+            pdf.setFillColor(...rgb);
+            pdf.rect(barX, yPos - 3, barWidth * (progress / 100), 3, 'F');
+            
+            yPos += 8;
+        }
+        
+        // Footer
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            pdf.setFontSize(8);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`Laporan SDGs Desa ${desaName}`, margin, pageHeight - 10);
+            pdf.text(dateStr, pageWidth - margin, pageHeight - 10, { align: 'right' });
+        }
+    }
+    
+    async function generateBermasalahPDF(pdf, pageWidth, pageHeight, margin, contentWidth, dateStr) {
+        let yPos = margin;
+        
+        pdf.setFillColor(239, 68, 68);
+        pdf.rect(0, 0, pageWidth, 50, 'F');
+        
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(20);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('LAPORAN SDGs BERMASALAH', pageWidth / 2, 20, { align: 'center' });
+        
+        pdf.setFontSize(14);
+        pdf.text('Kecamatan Barambai 2026', pageWidth / 2, 32, { align: 'center' });
+        pdf.text(dateStr, pageWidth / 2, 42, { align: 'center' });
+        
+        yPos = 65;
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('SDGs dengan Capaian <60% (Kritis)', margin, yPos);
+        yPos += 8;
+        
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        
+        const problematics = [];
+        rankedData.forEach(desa => {
+            for (let i = 1; i <= 17; i++) {
+                const val = desa[`Goal ${i}`] || 0;
+                if (val < 60) {
+                    problematics.push({
+                        desa: desa['Nama Desa'],
+                        sdg: i,
+                        nama: SDGS_DESA_DATA[i].nama,
+                        nilai: val
+                    });
+                }
+            }
+        });
+        
+        if (problematics.length === 0) {
+            pdf.text('Tidak ada SDGs dengan capaian kritis (<60%)', margin, yPos);
+        } else {
+            problematics.sort((a, b) => a.nilai - b.nilai);
+            problematics.forEach((item, idx) => {
+                if (yPos > pageHeight - 30) {
+                    pdf.addPage();
+                    yPos = margin;
+                }
+                pdf.setTextColor(239, 68, 68);
+                pdf.text(`${idx + 1}. ${item.desa}`, margin, yPos);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(`${SDGS_DESA_DATA[item.sdg].icon} SDGs ${item.sdg}: ${item.nama.substring(0, 40)}`, margin + 5, yPos + 5);
+                pdf.text(`Capaian: ${item.nilai.toFixed(1)}%`, margin + 5, yPos + 10);
+                yPos += 16;
+            });
+        }
+        
+        yPos += 10;
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('REKOMENDASI TINDAK LANJUT:', margin, yPos);
+        yPos += 8;
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        const recs = [
+            '1. Audit lapangan segera untuk verifikasi data SDGs kritis',
+            '2. Alokasi Bantuan Keuangan Khusus (BKK) kabupaten',
+            '3. Pendampingan teknokrat untuk desa dengan >3 SDGs kritis',
+            '4. Sinkronisasi RPJMDes dengan SDGs bermasalah',
+            '5. Evaluasi bulanan progress perbaikan'
+        ];
+        
+        recs.forEach(rec => {
+            if (yPos > pageHeight - 30) {
+                pdf.addPage();
+                yPos = margin;
+            }
+            const lines = pdf.splitTextToSize(rec, contentWidth);
+            pdf.text(lines, margin, yPos);
+            yPos += lines.length * 6;
+        });
+        
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            pdf.setFontSize(8);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`Laporan SDGs Bermasalah - Hal ${i}/${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        }
+    }
+    
+    // Handle ESC key to close modals
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (!document.getElementById('exportPdfModal').classList.contains('hidden')) {
+                closeExportPdfModal();
+            } else if (!document.getElementById('sdgInfoModal').classList.contains('hidden')) {
+                closeSdgInfoModal();
+            } else if (!document.getElementById('desaModal').classList.contains('hidden')) {
+                closeModal();
+            }
+        }
+    });
+    
+    // Initialize
+    loadData();
+    lucide.createIcons();
+</script>
+
+<script>(function(){document.addEventListener("click",function(e){var a=e.target.closest("[data-product-id]");if(!a)return;e.preventDefault();var pid=a.getAttribute("data-product-id");if(pid)parent.postMessage({type:"ecto-artifact-link-click",productId:pid},"*")})})();</script>
+</body>
+</html>
